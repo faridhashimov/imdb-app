@@ -1,0 +1,15 @@
+.main-col{
+    color: #77BC3F;
+}
+
+.el-width {
+    width: 675px
+}
+
+@media (max-width: 1000px) {
+    .el-width {
+        width: 70%;
+        text-align: center;
+    }
+}
+
