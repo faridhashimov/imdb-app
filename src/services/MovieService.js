@@ -1,37 +1,47 @@
-class MovieService {
-    _apibase = 'https://movie-database-imdb-alternative.p.rapidapi.com/';
+import { useHttp } from '../hooks/http.hook';
 
-    getData = async (url) => {
-        let res = await fetch(`${url}`, {
-            method: 'GET',
-            headers: {
-                'x-rapidapi-host':
-                    'movie-database-imdb-alternative.p.rapidapi.com',
-                'x-rapidapi-key':
-                    '03122206c1mshbf1ff069199e6aep1fda91jsncc3c4a39c36d',
-            },
-        });
+const MovieService = () => {
+    const {loading, request, error, clearError} = useHttp();
 
-        if (!res.ok) {
-            throw new Error(
-                `Something went wrong with ${url}, error status ${res.status}`
-            );
-        }
+    const _apibase = 'https://movie-database-imdb-alternative.p.rapidapi.com/';
+    const header = {
+        'x-rapidapi-host':
+            'movie-database-imdb-alternative.p.rapidapi.com',
+        'x-rapidapi-key':
+            '03122206c1mshbf1ff069199e6aep1fda91jsncc3c4a39c36d',
+    } ;
 
-        return res.json();
+    // const getData = async (url) => {
+    //     let res = await fetch(`${url}`, {
+    //         method: 'GET',
+    //         headers: {
+    //             'x-rapidapi-host':
+    //                 'movie-database-imdb-alternative.p.rapidapi.com',
+    //             'x-rapidapi-key':
+    //                 '03122206c1mshbf1ff069199e6aep1fda91jsncc3c4a39c36d',
+    //         },
+    //     });
+
+    //     if (!res.ok) {
+    //         throw new Error(
+    //             `Something went wrong with ${url}, error status ${res.status}`
+    //         );
+    //     }
+
+    //     return res.json();
+    // };
+
+    const getAllMovies = async (title, page) => {
+        const data = await request(`${_apibase}?s=${title}&r=json&page=${page}`, {headers: header});
+        return data.Search.map(_theMovieData);
     };
 
-    getAllMovies = async (title, page) => {
-        const data = await this.getData(`${this._apibase}?s=${title}&r=json&page=${page}`);
-        return data.Search.map(this._theMovieData);
+    const getMovieById = async (id) => {
+        const data = await request(`${_apibase}?r=json&i=${id}`, {headers: header});
+        return _theMovieData(data);
     };
 
-    getMovieById = async (id) => {
-        const data = await this.getData(`${this._apibase}?r=json&i=${id}`);
-        return this._theMovieData(data);
-    };
-
-    _theMovieData = (res) => {
+    const _theMovieData = (res) => {
         return {
             poster: res.Poster,
             title: res.Title,
@@ -48,6 +58,8 @@ class MovieService {
             totalResults: res.totalResults
         };
     };
+
+    return {loading, error, clearError, getMovieById, getAllMovies }
 }
 
 export default MovieService;

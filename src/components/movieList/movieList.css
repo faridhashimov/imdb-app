@@ -11,9 +11,6 @@
     transition: all .2s ease-in;
 }
 
-
-
-
 .hide {
     transition: all .2s ease-in;
     transform: translateY(40px);

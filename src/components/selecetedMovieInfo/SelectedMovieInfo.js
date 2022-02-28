@@ -1,123 +1,100 @@
-import React, { Component } from 'react';
-import MovieService from '../../services/MovieService';
+import React, { useState, useEffect } from 'react';
+import useMovieService from '../../services/MovieService';
 import SkeletonAnimation from '../skeletonAnimation/SkeletonAnimation';
 import SpinnerAnimation from '../spinnerAnimation/SpinnerAnimation';
 import ErrorMessage from '../errorMessage/ErrorMessage';
+import posterimg from '../../resources/img/image_not_found.png';
 
-class SelectedMovieInfo extends Component {
-    state = {
-        movie: null,
-        loading: false,
-        error: false,
+const SelectedMovieInfo = (props) => {
+    const [movie, setMovie] = useState(null);
+    const { movieID } = props;
+
+    const { loading, error, getMovieById } = useMovieService();
+
+    useEffect(() =>{
+        updateMovie();
+    }, [movieID])
+
+    const onMovieUpdated = (movie) => {
+        setMovie(movie);
     };
 
-    movieService = new MovieService();
-
-    componentDidMount = () => {
-        this.updateMovie();
-    };
-
-    componentDidUpdate(prevProps) {
-        if (this.props.movieID !== prevProps.movieID) {
-            this.updateMovie();
-        }
-        
-    }
-
-    onMovieLoading = () => {
-        this.setState({
-            loading: true,
-        });
-    };
-
-    onError = () => {
-        this.setState({
-            loading: false,
-            error: true,
-        });
-    };
-
-    onMovieUpdated = (movie) => {
-        this.setState({
-            movie,
-            loading: false,
-        });
-    };
-
-    updateMovie = () => {
-        const { movieID } = this.props;
+    const updateMovie = () => {
         if (!movieID) {
             return;
         }
-
-        this.onMovieLoading();
-
-        this.movieService
-            .getMovieById(movieID)
-            .then(this.onMovieUpdated)
-            .catch(this.onError);
+        getMovieById(movieID)
+            .then(onMovieUpdated)
     };
-
-    render() {
-        const { movie, error, loading } = this.state;
 
         const skeleton = movie || loading || error ? null : <SkeletonAnimation />;
         const errorMessage = error ? <ErrorMessage /> : null;
         const spinner = loading ? <SpinnerAnimation /> : null;
         const content = !(loading || error || !movie) ? <View movie={movie} /> : null;
 
+        // ref={this.myRef}
+
         return (
-            <div className="w-72 flex justify-center items-center border-2 flex-wrap shadow-xl p-2 rounded-lg" ref={this.myRef}>
+            <div className="w-72 flex justify-center items-center border-2 flex-wrap shadow-xl p-2 rounded-lg">
                 {errorMessage}
                 {skeleton}
                 {spinner}
                 {content}
             </div>
         );
-    }
 }
 
 const View = ({ movie }) => {
+
     const { poster, title, plot, type, year, rated, runtime, genre, director, writer, actors } = movie;
+
+    let checkInfo = (item) => {
+        if(item === 'N/A') {
+            return 'No available information'
+        }
+        return item;
+    }
+
     let descr = plot.length > 100 ? plot.slice(0, 110) + '...': plot;
-    let writers = writer.split(', ').slice(0, 3);
+    let writers = checkInfo(writer).split(', ').slice(0, 3);
     let contentType = type.charAt(0).toUpperCase() + type.slice(1);
+    let moviePoster = (poster === 'N/A') ?  posterimg : poster;
 
     
     return (
         <>
-            <div className="cursor-pointer h-60 w-40 relative rounded-md overflow-hidden mb-3">
-                <img className="w-full h-full" src={poster} alt="Batman" />
+            <div className="cursor-pointer h-60 w-44 relative rounded-md overflow-hidden mb-3">
+                <img className="w-full h-full" src={moviePoster} alt="Batman" />
             </div>
             <div className="leading-5 text-sm">
-                <h1 className="border-b-2 text-center font-bold pb-3">{title}</h1>
+                <h1 className="border-b-2 text-center pb-3 px-5"><span className='font-bold text-xl my-0 mx-auto'>{checkInfo(title)}</span></h1>
                 <p className="border-b-2 pb-1">
                     {/* <span className="font-bold">Plot: </span>  */}
-                    {descr}
+                    {checkInfo(descr)}
                 </p>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Type: </span>
-                    {contentType}
+                    {checkInfo(contentType)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Year: </span>
-                    {year}
+                    {checkInfo(year)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Rated: </span>
-                    {rated}
+                    {checkInfo(rated)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Runtime: </span>
-                    {runtime}
+                    {checkInfo(runtime)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Genre: </span>
-                    {genre}
+                    {checkInfo(genre)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Director: </span>
-                    {director}
+                    {checkInfo(director)}
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Writer(s): </span>
@@ -125,7 +102,7 @@ const View = ({ movie }) => {
                 </h1>
                 <h1 className="border-b-2 pb-1">
                     <span className="font-bold">Actors: </span>
-                    {actors}
+                    {checkInfo(actors)}
                 </h1>
             </div>
         </>

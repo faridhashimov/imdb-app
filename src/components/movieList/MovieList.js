@@ -1,141 +1,92 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-import MovieService from '../../services/MovieService';
+import useMovieService from '../../services/MovieService';
 import SpinnerAnimation from '../spinnerAnimation/SpinnerAnimation';
 import ErrorMessage from '../errorMessage/ErrorMessage';
-import EmptyMovieList from '../emptyMovieList/EmptyMovieList';
+// import EmptyMovieList from '../emptyMovieList/EmptyMovieList';
 import Button from '@mui/material/Button';
+import posterimg from '../../resources/img/image_not_found.png';
 
 import './movieList.css';
 
-class MovieList extends Component {
-    state = {
-        movies: [],
-        loading: true,
-        error: false,
-        page: 1,
-        newMoviesloading: false
+const MovieList = (props) =>  {
+    const [movies, setMovies] = useState([]);
+    const [page, setPage] = useState(1);
+    const { term } = props;
+
+    const { loading, error, getAllMovies } = useMovieService();
+
+    useEffect(() => {
+        updateMovieList(); 
+        getElements()
+    }, [term])
+
+    const onMovielistUpdated = (newMovies) => {
+        setMovies([...movies, ...newMovies]);
+        setPage(page => page + 1);
     };
 
-    movieService = new MovieService();
 
-    componentDidMount = () => {
-        this.updateMovieList();
+    const onLoad = () => {
+        getAllMovies(term, page)
+        .then(onMovielistUpdated)
     };
 
-    componentDidUpdate(prevProps) {
-        if (this.props.term !== prevProps.term) {
-            this.updateMovieList();
-        }
+    const onUpdateByNewTerm = (newMovies) => {
+        setMovies([...newMovies]);
+        setPage(2);
     }
 
-    onMovielistLoading = () => {
-        this.setState({
-            newMoviesloading: true,
-        });
-    };
-
-    onMovielistUpdated = (newMovies) => {
-        this.setState(({movies, page}) =>({
-            movies: [...movies, ...newMovies],
-            loading: false,
-            newMoviesloading: false,
-            error: false,
-            page: page + 1
-        }));
-    };
-
-    onError = () => {
-        this.setState({
-            error: true,
-            loading: false,
-        });
-    };
-
-    onLoad = () => {
-        const { term } = this.props;
-        const { page } = this.state;
-
-        this.onMovielistLoading();
-
-        this.movieService
-            .getAllMovies(term, page)
-            .then(this.onMovielistUpdated)
-            // .then(res => console.log(res))
-            .catch(this.onError);
-        console.log(this.state.page);
-        
-    };
-
-    onUpdateByNewTerm = (newMovies) => {
-        this.setState(() =>({
-            movies: [...newMovies],
-            loading: false,
-            newMoviesloading: false,
-            error: false,
-            page: 2
-        }));
-    }
-
-    updateMovieList = () => {
-        const { term } = this.props;
-        const page = this.props.page  ;
+    const updateMovieList = () => {
+        const page = 1;
          
         if (!term) {
             return;
         } 
 
-        this.onMovielistLoading();
+        getAllMovies(term, page)
+        .then(onUpdateByNewTerm)
 
-        this.movieService
-            .getAllMovies(term, page)
-            .then(this.onUpdateByNewTerm)
-            // .then(res => console.log(res))
-            .catch(this.onError);
-        console.log(this.state.page);
+        movieRefs.current.forEach(item => item.classList.remove('clicked'));
     };
 
-    checkedMovie = null;
-    movieList = [];
+    const movieRefs = useRef([]);
 
-    setRef = element => {
-        this.checkedMovie = element;
-        this.movieList.push(this.checkedMovie);
-    };
-
-    checkMovieEl = (id) => {
-        this.movieList.forEach((item, i) => {
-            item.classList.remove('clicked');
-            if(id === i) {
-                item.classList.add('clicked')
-            }
-        })  
-        // console.log(this.movieList);      
+    const getElements = (el, i) => {
+        movieRefs.current[i] = el;
     }
 
-    renderMenu = (arr) => {
+    const focusOnMovie = (id) => {
+        movieRefs.current.forEach(item => item.classList.remove('clicked'));
+        movieRefs.current[id].classList.add('clicked');
+        movieRefs.current[id].focus();
+    }
+
+    const renderMenu = (arr) => {
         if (!arr) {
             return;
         }
 
         const items = arr.map((item, i) => {
+        let poster = (item.poster === 'N/A') ?  posterimg : item.poster;
+        
             return (
                 <li
-                    className="cursor-pointer h-60 w-40 relative rounded-md shadow-xl overflow-hidden unclicked"
-                    key={item.imdbID}
+                    className="cursor-pointer h-72 w-48 relative rounded-md shadow-xl overflow-hidden unclicked"
+                    key={i}
                     tabIndex={'0'}
-                    ref={this.setRef}
+                    ref={(e) => getElements(e, i)}
                     onClick={() => {
-                        this.props.getMovieId(item.imdbID);
-                        this.checkMovieEl(i)}}
+                        props.getMovieId(item.imdbID);
+                        focusOnMovie(i);}}
                 >
                     <img
                         className="w-full h-full"
-                        src={item.poster}
+                        src={poster}
                         alt="Batman"
                     />
-                    <div className="h-10 w-40 absolute bottom-0 left-0 bg-black opacity-60 hide "></div>
-                    <div className="h-10 w-40 absolute bottom-0 left-0 leading-4 text-xs text-center text-white p-1 hide ">
+                    <div className="h-10 w-full absolute bottom-0 left-0 bg-black opacity-60 hide "></div>
+                    <div className="h-10 w-full absolute bottom-0 left-0 leading-4 text-xs text-center text-white p-1 hide ">
                         {item.title} {item.year}
                     </div>
                 </li>
@@ -143,33 +94,29 @@ class MovieList extends Component {
         });
 
         return (
-            <div className='flex flex-wrap mr-14 flex-col justify-between items-center'>
+            <div className='flex flex-wrap mr-8 flex-col justify-between items-center'>
                 <ul className=" grid md:grid-cols-2 lg:grid-cols-4 lg:gap-3 md:gap-5 gap-3 mb-8">
                     {items}
                 </ul>
-                <Button color={'primary'} variant="contained" disabled={false} onClick={this.onLoad}>Load More</Button>
+                <Button color={'primary'} variant="contained" size='large' onClick={onLoad} disabled={movies.length % 10 !== 0 ? true: false}>Load More</Button>
             </div>
         );
     };
 
-    render() {
-        const { movies, loading, error } = this.state;
-        const items = this.renderMenu(movies);
+    const items = renderMenu(movies);
+    // const skeleton = loading || error || movies ? null : <EmptyMovieList />;
+    const errorMessage = error ? <ErrorMessage /> : null;
+    const spinner = loading ? <SpinnerAnimation /> : null;
+    const content = !(loading || error) ? items : null;
 
-        // const skeleton = loading || error || movies ? null : <EmptyMovieList />;
-        const errorMessage = error ? <ErrorMessage /> : null;
-        const spinner = loading ? <SpinnerAnimation /> : null;
-        const content = !(loading || error ) ? items : null;
-
-        return (
-            <>
-                {/* {skeleton} */}
-                {errorMessage}
-                {spinner}
-                {content}
-            </>
-        );
-    }
+    return (
+        <>
+            {/* {skeleton} */}
+            {errorMessage}
+            {spinner}
+            {content}
+        </>
+    );
 }
 
 export default MovieList;
