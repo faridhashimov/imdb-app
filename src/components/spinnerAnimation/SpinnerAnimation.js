@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 
 const SpinnerAnimation = () =>  {
   return (
-    <Box sx={{ display: 'flex',justifyContent: 'center', alignItems: 'center', height: '300px', width: '700px' }}>
+    <Box sx={{ display: 'flex',justifyContent: 'center', alignItems: 'center', height: '600px', width: '700px' }}>
       <CircularProgress size={100} />
     </Box>
   );

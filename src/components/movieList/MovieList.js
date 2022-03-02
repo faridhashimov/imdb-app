@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import useMovieService from '../../services/MovieService';
 import SpinnerAnimation from '../spinnerAnimation/SpinnerAnimation';
 import ErrorMessage from '../errorMessage/ErrorMessage';
-// import EmptyMovieList from '../emptyMovieList/EmptyMovieList';
 import Button from '@mui/material/Button';
 import posterimg from '../../resources/img/image_not_found.png';
 
@@ -12,13 +11,15 @@ import './movieList.css';
 const MovieList = (props) =>  {
     const [movies, setMovies] = useState([]);
     const [page, setPage] = useState(1);
+    const [newItemsLoading, setNewItemsLoading] = useState(false);
     const { term } = props;
 
-    const { loading, error, getAllMovies } = useMovieService();
+    const { loading, error, getAllMovies, clearError } = useMovieService();
 
     useEffect(() => {
         updateMovieList(); 
-        getElements()
+        onRemoveActiveClass();
+
     }, [term])
 
     const onMovielistUpdated = (newMovies) => {
@@ -26,37 +27,36 @@ const MovieList = (props) =>  {
         setPage(page => page + 1);
     };
 
-
     const onLoad = () => {
+        setNewItemsLoading(true);
         getAllMovies(term, page)
         .then(onMovielistUpdated)
     };
 
     const onUpdateByNewTerm = (newMovies) => {
+        setNewItemsLoading(false)
         setMovies([...newMovies]);
         setPage(2);
     }
 
     const updateMovieList = () => {
         const page = 1;
-         
         if (!term) {
             return;
         } 
-
+      
         getAllMovies(term, page)
         .then(onUpdateByNewTerm)
-
-        movieRefs.current.forEach(item => item.classList.remove('clicked'));
     };
+
+    const onRemoveActiveClass = () => {
+        movieRefs.current.forEach(item => item.classList.remove('clicked'));
+    }
 
     const movieRefs = useRef([]);
 
-    const getElements = (el, i) => {
-        movieRefs.current[i] = el;
-    }
-
     const focusOnMovie = (id) => {
+        // console.log(movieRefs);
         movieRefs.current.forEach(item => item.classList.remove('clicked'));
         movieRefs.current[id].classList.add('clicked');
         movieRefs.current[id].focus();
@@ -68,14 +68,14 @@ const MovieList = (props) =>  {
         }
 
         const items = arr.map((item, i) => {
-        let poster = (item.poster === 'N/A') ?  posterimg : item.poster;
+            let poster = (item.poster === 'N/A') ?  posterimg : item.poster;
         
             return (
                 <li
                     className="cursor-pointer h-72 w-48 relative rounded-md shadow-xl overflow-hidden unclicked"
                     key={i}
                     tabIndex={'0'}
-                    ref={(e) => getElements(e, i)}
+                    ref={el => movieRefs.current[i] = el}
                     onClick={() => {
                         props.getMovieId(item.imdbID);
                         focusOnMovie(i);}}
@@ -94,28 +94,23 @@ const MovieList = (props) =>  {
         });
 
         return (
-            <div className='flex flex-wrap mr-8 flex-col justify-between items-center'>
-                <ul className=" grid md:grid-cols-2 lg:grid-cols-4 lg:gap-3 md:gap-5 gap-3 mb-8">
-                    {items}
-                </ul>
-                <Button color={'primary'} variant="contained" size='large' onClick={onLoad} disabled={movies.length % 10 !== 0 ? true: false}>Load More</Button>
-            </div>
+            <ul className=" grid md:grid-cols-2 lg:grid-cols-4 lg:gap-3 md:gap-5 gap-3 mb-8">
+                {items}
+            </ul>
         );
     };
 
     const items = renderMenu(movies);
-    // const skeleton = loading || error || movies ? null : <EmptyMovieList />;
     const errorMessage = error ? <ErrorMessage /> : null;
-    const spinner = loading ? <SpinnerAnimation /> : null;
-    const content = !(loading || error) ? items : null;
+    const spinner = loading && !newItemsLoading ? <SpinnerAnimation /> : null;
 
     return (
-        <>
-            {/* {skeleton} */}
+        <div className='flex flex-wrap mr-8 flex-col justify-between items-center'>
             {errorMessage}
             {spinner}
-            {content}
-        </>
+            {items}
+            <Button color={'primary'} style={{'display': loading && error ? 'none' : 'block'}} variant="contained" size='large' onClick={onLoad} disabled={movies.length % 10 !== 0 ? true: false}>Load More</Button>
+        </div>
     );
 }
 
